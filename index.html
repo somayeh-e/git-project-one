@@ -1,12 +1,36 @@
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
-  </head>
-  <body>
-    <h1>Hello Git project</h1>
-    <h4>How are you Git?</h4>
-    <h3>Whats up?</h3>
-  </body>
-</html>
+const rideModel = require("../models/ride.model");
+const { publishToQueue, subscribeToQueue } = require("../service/rabbit");
+
+//CREATE RIDE CONTROLLER
+module.exports.createRide = async (req, res) => {
+  try {
+    //extracting the data from req
+    const { pickup, destination } = req.body;
+
+    // newRide = {
+    //     user: "64bfe2309b1e4d6e4c8d1234", // Example user ID
+    //     pickup: "Central Park, NY",
+    //     destination: "Times Square, NY",
+    //   };
+
+    const newRide = new rideModel({
+      user: req.user._id,
+      pickup,
+      destination,
+    });
+
+    //save the new ride in db
+    await newRide.save();
+
+    publishToQueue("new-ride", JSON.stringify(newRide));
+
+    //return in the response
+    res.status(200).json({
+      success: true,
+      message: "New ride creted successfully",
+      newRide,
+    });
+  } catch (error) {
+    return res.status(500).send({ message: error.message });
+  }
+};
